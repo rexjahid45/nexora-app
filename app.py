@@ -3,7 +3,6 @@ from supabase import create_client
 from datetime import datetime, timedelta
 from PIL import Image
 import numpy as np
-import cv2
 import random
 import time
 
@@ -62,9 +61,6 @@ def check_license(key):
 
 def analyze_image(img):
     arr = np.array(img.convert("RGB"))
-    gray = cv2.cvtColor(arr, cv2.COLOR_RGB2GRAY)
-
-    brightness = np.mean(gray)
 
     if brightness > 120:
         signal = "CALL"
