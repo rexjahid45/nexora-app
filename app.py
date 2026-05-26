@@ -60,7 +60,12 @@ def check_license(key):
     return True
 
 def analyze_image(img):
+   arr = np.array(img.convert("RGB"))
+   brightness = np.mean(arr)
+
+ def analyze_image(img):
     arr = np.array(img.convert("RGB"))
+    brightness = np.mean(arr)
 
     if brightness > 120:
         signal = "CALL"
@@ -72,6 +77,19 @@ def analyze_image(img):
     confidence = random.randint(71, 92)
 
     pair = random.choice([
+        "EUR/USD",
+        "GBP/USD",
+        "BTC/USD",
+        "XAU/USD",
+        "USD/JPY"
+    ])
+
+    return {
+        "pair": pair,
+        "signal": signal,
+        "confidence": confidence,
+        "reason": reason
+    }
         "EUR/USD",
         "GBP/USD",
         "BTC/USD",
