@@ -75,22 +75,21 @@ def analyze_image(img):
         reason = "Bearish pressure detected."
 
     confidence = random.randint(71, 92)
+    result_text = reader.readtext(np.array(img), detail=0)
+    text = " ".join(result_text)
 
-   result_text = reader.readtext(np.array(img), detail=0)
-text = " ".join(result_text)
-
-if "USD/IDR" in text:
-    pair = "USD/IDR OTC"
-elif "GBP/USD" in text:
-    pair = "GBP/USD"
-elif "EUR/USD" in text:
-    pair = "EUR/USD"
-elif "BTC/USD" in text:
-    pair = "BTC/USD"
-elif "XAU/USD" in text:
-    pair = "XAU/USD"
-else:
-    pair = "Unknown Pair"
+    if "USD/IDR" in text:
+        pair = "USD/IDR OTC"
+    elif "GBP/USD" in text:
+        pair = "GBP/USD"
+    elif "EUR/USD" in text:
+        pair = "EUR/USD"
+    elif "BTC/USD" in text:
+        pair = "BTC/USD"
+    elif "XAU/USD" in text:
+        pair = "XAU/USD"
+    else:
+        pair = "Unknown Pair"
 
     return {
         "pair": pair,
