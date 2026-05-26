@@ -1,0 +1,5 @@
+streamlit
+supabase
+pillow
+opencv-python
+numpy
