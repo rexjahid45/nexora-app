@@ -60,10 +60,6 @@ def check_license(key):
     return True
 
 def analyze_image(img):
-   arr = np.array(img.convert("RGB"))
-   brightness = np.mean(arr)
-
- def analyze_image(img):
     arr = np.array(img.convert("RGB"))
     brightness = np.mean(arr)
 
