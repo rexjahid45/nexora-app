@@ -90,19 +90,6 @@ def analyze_image(img):
         "confidence": confidence,
         "reason": reason
     }
-        "EUR/USD",
-        "GBP/USD",
-        "BTC/USD",
-        "XAU/USD",
-        "USD/JPY"
-    ])
-
-    return {
-        "pair": pair,
-        "signal": signal,
-        "confidence": confidence,
-        "reason": reason
-    }
 
 def login_page():
     st.markdown("<br>", unsafe_allow_html=True)
