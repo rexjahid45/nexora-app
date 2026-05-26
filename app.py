@@ -5,6 +5,9 @@ from PIL import Image
 import numpy as np
 import random
 import time
+import easyocr
+
+reader = easyocr.Reader(['en'])
 
 st.set_page_config(page_title="Nexora", page_icon="⚡", layout="wide")
 
@@ -13,6 +16,7 @@ SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 ADMIN_PASSWORD = st.secrets["ADMIN_PASSWORD"]
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
 
 st.markdown("""
 <style>
@@ -72,13 +76,21 @@ def analyze_image(img):
 
     confidence = random.randint(71, 92)
 
-    pair = random.choice([
-        "EUR/USD",
-        "GBP/USD",
-        "BTC/USD",
-        "XAU/USD",
-        "USD/JPY"
-    ])
+   result_text = reader.readtext(np.array(img), detail=0)
+text = " ".join(result_text)
+
+if "USD/IDR" in text:
+    pair = "USD/IDR OTC"
+elif "GBP/USD" in text:
+    pair = "GBP/USD"
+elif "EUR/USD" in text:
+    pair = "EUR/USD"
+elif "BTC/USD" in text:
+    pair = "BTC/USD"
+elif "XAU/USD" in text:
+    pair = "XAU/USD"
+else:
+    pair = "Unknown Pair"
 
     return {
         "pair": pair,
