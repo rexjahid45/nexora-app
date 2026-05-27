@@ -3,4 +3,3 @@ supabase
 pillow
 opencv-python-headless
 numpy
-easyocr
