@@ -1,0 +1,11 @@
+{
+    "users": {
+        "demo": {
+            "password": "1234",
+            "license": "DEMO-1234",
+            "expiry": "2026-06-06",
+            "blocked": false,
+            "credits": 0
+        }
+    }
+}
