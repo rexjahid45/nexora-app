@@ -1,0 +1,183 @@
+{
+  "licenses": {
+    "NXR-3AE53AAECF": {
+      "expiry": "2026-06-07 21:55:25",
+      "blocked": false,
+      "created": "2026-05-31 21:55:25.368078"
+    },
+    "NXR-0B461F5419": {
+      "expiry": "2027-05-31 22:44:25",
+      "blocked": false
+    }
+  },
+  "users": {
+    "rexjahidnew@gmail.com": {
+      "password": "a315a23423a41ff7718c8c9d81b4c795b05386cfbf10a801fdc70c6cbdc7d8e6",
+      "license": "NXR-3AE53AAECF",
+      "credits": 47,
+      "blocked": false,
+      "created": "2026-05-31 21:57:19.962075"
+    },
+    "nexorai@gmail.com": {
+      "pass": "6684bd7ca5b118220b0b7f9996bc71c75359fec3242a3c8ce8a53e889081bf55",
+      "license": "NXR-3AE53AAECF",
+      "credits": 495,
+      "blocked": false
+    }
+  },
+  "history": [
+    {
+      "user": "rexjahidnew@gmail.com",
+      "time": "2026-05-31 21:59:15.747742",
+      "platform": "Quotex",
+      "pair": "Auto Detect Failed",
+      "signal": "PUT",
+      "trend": "Sideways / Mixed",
+      "confidence": 77,
+      "volatility": "Low",
+      "reason": [
+        "Market candle color is mixed",
+        "No strong trend confirmation",
+        "Signal generated with medium confidence only"
+      ]
+    },
+    {
+      "user": "rexjahidnew@gmail.com",
+      "time": "2026-05-31 22:11:34.155787",
+      "platform": "Quotex",
+      "pair": "Auto Detect Failed",
+      "method": "Manual Backup Needed",
+      "signal": "SKIP",
+      "trend": "Sideways / Low Movement",
+      "confidence": 55,
+      "volatility": "Low",
+      "expiry": "No Trade",
+      "pattern": "Weak Market",
+      "reasons": [
+        "Market movement is weak",
+        "Candle pressure not clear",
+        "Better to skip this trade"
+      ]
+    },
+    {
+      "user": "rexjahidnew@gmail.com",
+      "time": "2026-05-31 22:12:50.770071",
+      "platform": "Quotex",
+      "pair": "Auto Detect Failed",
+      "method": "Manual Backup Needed",
+      "signal": "SKIP",
+      "trend": "Mixed / No Clear Direction",
+      "confidence": 90,
+      "volatility": "Normal",
+      "expiry": "2 Minutes",
+      "pattern": "Doji / Mixed Pressure",
+      "reasons": [
+        "Buyer and seller pressure are almost equal",
+        "No strong confirmation found",
+        "Skip is safer than forced entry"
+      ]
+    },
+    {
+      "user": "rexjahidnew@gmail.com",
+      "time": "2026-05-31 22:13:52.834724",
+      "platform": "Quotex",
+      "pair": "Auto Detect Failed",
+      "method": "Manual Backup Needed",
+      "signal": "SKIP",
+      "trend": "Sideways / Low Movement",
+      "confidence": 55,
+      "volatility": "Low",
+      "expiry": "No Trade",
+      "pattern": "Weak Market",
+      "reasons": [
+        "Market movement is weak",
+        "Candle pressure not clear",
+        "Better to skip this trade"
+      ]
+    },
+    {
+      "user": "rexjahidnew@gmail.com",
+      "time": "2026-05-31 22:20:19.286871",
+      "platform": "Quotex",
+      "pair": "Auto Detect Failed",
+      "method": "Manual Needed",
+      "signal": "PUT",
+      "trend": "Bearish",
+      "confidence": 83,
+      "volatility": "Normal",
+      "expiry": "1 Minute",
+      "pattern": "Bearish Momentum",
+      "reasons": [
+        "Seller pressure detected from candle area",
+        "Red momentum is stronger",
+        "Possible downward continuation"
+      ]
+    },
+    {
+      "user": "rexjahidnew@gmail.com",
+      "time": "2026-05-31 22:23:21.099875",
+      "platform": "Quotex",
+      "pair": "Auto Detect Failed",
+      "method": "Manual Needed",
+      "signal": "PUT",
+      "trend": "Bearish",
+      "confidence": 84,
+      "volatility": "Normal",
+      "expiry": "5 Minutes",
+      "pattern": "Seller Pressure",
+      "reasons": [
+        "Seller pressure detected from candle area",
+        "Red momentum is stronger",
+        "Possible downward continuation"
+      ]
+    },
+    {
+      "user": "rexjahidnew@gmail.com",
+      "time": "2026-05-31 22:25:48.272009",
+      "platform": "Quotex",
+      "pair": "Auto Detect Failed",
+      "method": "Manual Needed",
+      "signal": "CALL",
+      "trend": "Bullish",
+      "confidence": 81,
+      "volatility": "Normal",
+      "expiry": "1 Minute",
+      "pattern": "Buyer Pressure",
+      "reasons": [
+        "Buyer pressure detected from candle area",
+        "Green momentum is stronger",
+        "Possible upward continuation"
+      ]
+    },
+    {
+      "user": "rexjahidnew@gmail.com",
+      "time": "2026-05-31 22:27:48.721840",
+      "platform": "Quotex",
+      "pair": "Auto Detect Failed",
+      "method": "Manual Needed",
+      "signal": "CALL",
+      "trend": "Bullish",
+      "confidence": 81,
+      "volatility": "Normal",
+      "expiry": "1 Minute",
+      "pattern": "Bullish Momentum",
+      "reasons": [
+        "Buyer pressure detected from candle area",
+        "Green momentum is stronger",
+        "Possible upward continuation"
+      ]
+    },
+    {
+      "time": "22:48:10",
+      "pair": "AUD/USD",
+      "direction": "CALL",
+      "confidence": 87
+    },
+    {
+      "time": "22:49:49",
+      "pair": "AUD/USD",
+      "direction": "CALL",
+      "confidence": 83
+    }
+  ]
+}

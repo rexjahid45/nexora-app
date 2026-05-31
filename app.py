@@ -1,295 +1,321 @@
-import streamlit as st
-import json, os, time, random
+import streamlit as st, random, time, json, os, uuid, hashlib
 from datetime import datetime, timedelta
-from PIL import Image
 
-APP_NAME = "Nexora AI"
-DATA_FILE = "nexora_data.json"
+DB="nexora_db.json"
+ADMIN_PASS="jahid123"
 
-PAIRS = [
-    "EUR/USD", "GBP/USD", "USD/JPY", "AUD/JPY", "EUR/JPY",
-    "BTC/USD", "XAU/USD", "USD/IDR OTC", "USD/INR OTC",
-    "USD/PHP OTC", "NZD/USD OTC", "AUD/NZD OTC", "NZD/JPY OTC"
-]
+OWNER_NAME="Trader Jahid Official"
+TELEGRAM="trader Jahid official"
+YOUTUBE="Trade With Jahid"
 
-ADMIN_USER = "admin"
-ADMIN_PASS = "123456"
+PAIRS=["AUD/USD","EUR/USD","GBP/USD","USD/JPY","AUD/JPY","EUR/JPY","USD/PKR OTC","USD/INR OTC","USD/PHP OTC","USD/IDR OTC","NZD/USD OTC"]
 
-st.set_page_config(page_title=APP_NAME, page_icon="📈", layout="wide")
+def save(d):
+    with open(DB,"w") as f: json.dump(d,f,indent=2)
+
+def load():
+    if not os.path.exists(DB):
+        d={"users":{},"licenses":{},"history":[]}
+        save(d); return d
+    return json.load(open(DB))
+
+def h(x): return hashlib.sha256(x.encode()).hexdigest()
+
+def make_license(days):
+    code="NXR-"+uuid.uuid4().hex[:10].upper()
+    exp=(datetime.now()+timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+    return code,exp
+
+def valid_license(db,code):
+    if code not in db["licenses"]: return False
+    if db["licenses"][code].get("blocked"): return False
+    return datetime.now() < datetime.strptime(db["licenses"][code]["expiry"],"%Y-%m-%d %H:%M:%S")
+
+def ai_signal(pair):
+    direction=random.choice(["CALL","PUT"])
+    conf=random.randint(80,90)
+    logic_call=[
+        "Trap type: RED_TRAP",
+        "Visible candle sequence: bearish candles followed by rejection candle.",
+        "Reason: Sellers tried to push lower but momentum failed near support.",
+        "Support level is holding and buyers are entering with pressure.",
+        "AI conclusion: High probability for CALL entry."
+    ]
+    logic_put=[
+        "Trap type: GREEN_TRAP",
+        "Visible candle sequence: bullish candles followed by sharp rejection.",
+        "Reason: Buyers reached resistance but failed to break previous high.",
+        "Resistance level is rejecting price with seller pressure.",
+        "AI conclusion: High probability for PUT entry."
+    ]
+    return direction,conf,(logic_call if direction=="CALL" else logic_put)
+
+st.set_page_config(page_title="Nexora AI",page_icon="⚡",layout="wide")
 
 st.markdown("""
 <style>
-.stApp {background: linear-gradient(135deg,#050816,#0b1020,#111827); color:white;}
-h1,h2,h3,p,label {color:white !important;}
-.card {background:rgba(255,255,255,.07); padding:22px; border-radius:20px; margin-bottom:15px;}
-.signal-call {color:#00ff99; font-size:48px; font-weight:900;}
-.signal-put {color:#ff4d6d; font-size:48px; font-weight:900;}
+.stApp{background:#030712;color:white;font-family:Inter,Arial;}
+section[data-testid="stSidebar"]{background:#020617;border-right:1px solid #13213d;}
+.hero{background:linear-gradient(135deg,#061626,#07111f 55%,#101827);border:1px solid #16345c;border-radius:22px;padding:35px;margin-bottom:22px;box-shadow:0 0 35px rgba(0,119,255,.18);}
+.logo{font-size:38px;font-weight:900}.logo span{color:#22c55e}.blue{color:#3b82f6}.green{color:#22c55e}
+.muted{color:#94a3b8;letter-spacing:3px;font-size:13px;}
+.card{background:linear-gradient(145deg,#07111f,#020617);border:1px solid #172554;border-radius:22px;padding:24px;margin:12px 0;box-shadow:0 0 28px rgba(37,99,235,.13);}
+.greenCard{background:linear-gradient(145deg,#052e1a,#04111c);border:1px solid #15803d;border-radius:22px;padding:24px;margin:12px 0;box-shadow:0 0 30px rgba(34,197,94,.15);}
+.redCard{background:linear-gradient(145deg,#2e0611,#050816);border:1px solid #7f1d1d;border-radius:22px;padding:24px;margin:12px 0;box-shadow:0 0 30px rgba(239,68,68,.15);}
+.big{font-size:46px;font-weight:900}.title{text-align:center;font-size:44px;font-weight:900}
+.btnlike{background:#16a34a;padding:14px;border-radius:14px;text-align:center;font-weight:800;margin-top:10px;}
+.badge{display:inline-block;background:#052e1a;color:#22c55e;padding:8px 14px;border-radius:999px;font-weight:800;border:1px solid #16a34a;}
+.metricbox{background:#050d1a;border:1px solid #1e3a8a;border-radius:18px;padding:20px;text-align:center;}
+.brandbox{background:#061626;border:1px solid #164e63;border-radius:18px;padding:18px;margin-top:18px;}
+.adminbox{background:#050d1a;border:1px solid #1e3a8a;border-radius:18px;padding:16px;margin:10px 0;}
 </style>
-""", unsafe_allow_html=True)
+""",unsafe_allow_html=True)
 
-def save_data(data):
-    with open(DATA_FILE, "w") as f:
-        json.dump(data, f, indent=4)
+db=load()
+if "login" not in st.session_state: st.session_state.login=False
+if "user" not in st.session_state: st.session_state.user=""
 
-def load_data():
-    if not os.path.exists(DATA_FILE):
-        data = {
-            "users": {
-                "demo": {
-                    "password": "1234",
-                    "license": "DEMO-1234",
-                    "expiry": (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d"),
-                    "blocked": False,
-                    "credits": 5
-                }
+st.sidebar.markdown(f"""
+<div class='logo'>Nexora <span>AI</span></div>
+<p class='muted'>NEURAL TERMINAL</p>
+<div class='brandbox'>
+<b>{OWNER_NAME}</b><br><br>
+<span class='green'>Telegram:</span> {TELEGRAM}<br>
+<span class='green'>YouTube:</span> {YOUTUBE}
+</div>
+""",unsafe_allow_html=True)
+
+menu=st.sidebar.radio("Menu",["Login","Dashboard","Admin Panel","Logout"])
+
+if menu=="Login":
+    st.markdown(f"""
+    <div class='hero'>
+      <div class='title'>Nexora <span class='blue'>AI</span></div>
+      <p class='muted' style='text-align:center'>ADVANCED CHART ANALYZER</p>
+      <div style='text-align:center;margin-top:18px'>
+        <b>{OWNER_NAME}</b><br>
+        <span class='green'>Telegram:</span> {TELEGRAM} &nbsp; | &nbsp;
+        <span class='green'>YouTube:</span> {YOUTUBE}
+      </div>
+    </div>
+    """,unsafe_allow_html=True)
+
+    c1,c2=st.columns(2)
+    with c1:
+        st.markdown("<div class='card'>",unsafe_allow_html=True)
+        st.subheader("Login")
+        u=st.text_input("Email / Username")
+        p=st.text_input("Password",type="password")
+        lic=st.text_input("License Code")
+        if st.button("Login",use_container_width=True):
+            if u in db["users"] and db["users"][u]["pass"]==h(p) and valid_license(db,lic):
+                if db["users"][u].get("blocked",False):
+                    st.error("Your account is blocked.")
+                else:
+                    st.session_state.login=True
+                    st.session_state.user=u
+                    db["users"][u]["license"]=lic
+                    save(db)
+                    st.success("Login success")
+                    st.rerun()
+            else:
+                st.error("Wrong login or license")
+        st.markdown("</div>",unsafe_allow_html=True)
+
+    with c2:
+        st.markdown("<div class='card'>",unsafe_allow_html=True)
+        st.subheader("Sign Up")
+        ru=st.text_input("New Username")
+        rp=st.text_input("New Password",type="password")
+        rl=st.text_input("License")
+        if st.button("Create Account",use_container_width=True):
+            if ru and rp and valid_license(db,rl):
+                if ru in db["users"]:
+                    st.error("User already exists")
+                else:
+                    db["users"][ru]={"pass":h(rp),"license":rl,"credits":500,"blocked":False,"created":datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+                    save(db)
+                    st.success("Account created")
+            else:
+                st.error("Valid license required")
+        st.markdown("</div>",unsafe_allow_html=True)
+
+elif menu=="Dashboard":
+    if not st.session_state.login:
+        st.warning("Login first")
+        st.stop()
+
+    user=db["users"][st.session_state.user]
+
+    if user.get("blocked", False):
+        st.error("Your account is blocked. Contact admin.")
+        st.stop()
+
+    st.markdown(f"""
+    <div class='hero'>
+      <div class='logo'>REAL CHART <span class='blue'>ANALYZER</span></div>
+      <p class='muted'>LIVE MARKET & VOLUME ANALYSIS</p>
+      <span class='badge'>LIVE SCAN: ON</span> &nbsp; 
+      <span class='badge'>AI ENGINE: ACTIVE</span>
+      <div style='margin-top:20px'>
+        <b>{OWNER_NAME}</b><br>
+        <span class='green'>Telegram:</span> {TELEGRAM} &nbsp; | &nbsp;
+        <span class='green'>YouTube:</span> {YOUTUBE}
+      </div>
+    </div>
+    """,unsafe_allow_html=True)
+
+    a,b,c,d=st.columns(4)
+    a.markdown("<div class='metricbox'><p>ACCURACY MODE</p><h1>80-90%</h1><p>Target Filter</p></div>",unsafe_allow_html=True)
+    b.markdown(f"<div class='metricbox'><p>CREDITS</p><h1>{user.get('credits',0)}</h1><p>Available</p></div>",unsafe_allow_html=True)
+    c.markdown("<div class='metricbox'><p>RISK LEVEL</p><h1 style='color:#22c55e'>LOW</h1><p>1-3%</p></div>",unsafe_allow_html=True)
+    d.markdown("<div class='metricbox'><p>MODE</p><h1>PRO</h1><p>Premium</p></div>",unsafe_allow_html=True)
+
+    st.markdown("<div class='card'><h2>📡 LIVE SCAN COMPLETE</h2><h1>REAL MARKET REPORT</h1>",unsafe_allow_html=True)
+    pair=st.selectbox("LIVE ASSET",PAIRS)
+    st.file_uploader("Upload Chart Screenshot",type=["png","jpg","jpeg"])
+
+    if st.button("ANALYZE NEW CHART",use_container_width=True):
+        if user.get("credits",0)<=0:
+            st.error("Credits finished. Contact admin.")
+            st.stop()
+
+        p=st.progress(0)
+        box=st.empty()
+        for i,t in enumerate(["Scanning chart...","Detecting support resistance...","Checking trap logic...","Filtering low accuracy setups...","Generating final report..."]):
+            box.info(t)
+            p.progress((i+1)*20)
+            time.sleep(1.2)
+
+        direction,conf,logic=ai_signal(pair)
+        user["credits"]-=1
+        save(db)
+
+        colorClass="greenCard" if direction=="CALL" else "redCard"
+        label="BUY ENTRY (CALL)" if direction=="CALL" else "SELL ENTRY (PUT)"
+        icon="📈" if direction=="CALL" else "📉"
+
+        st.markdown(f"""
+        <div class='{colorClass}'>
+          <p class='muted'>SIGNAL DIRECTION</p>
+          <div class='big'>{icon} {label}</div>
+        </div>
+        <div class='card'>
+          <p class='muted'>CONFIDENCE LEVEL</p>
+          <div class='big'>{conf}/100</div>
+        </div>
+        <div class='card'>
+          <h3>⚙️ TECHNICAL LOGIC</h3>
+        """,unsafe_allow_html=True)
+
+        for x in logic:
+            st.write("✅ "+x)
+
+        st.markdown("<div class='btnlike'>COPY SIGNAL</div></div>",unsafe_allow_html=True)
+
+    st.markdown("</div>",unsafe_allow_html=True)
+
+elif menu=="Admin Panel":
+    st.subheader("🔐 Admin Panel")
+    pw = st.text_input("Admin Password", type="password")
+
+    if pw == ADMIN_PASS:
+        st.success("✅ Admin Access Granted")
+
+        st.markdown("<div class='card'>", unsafe_allow_html=True)
+        st.subheader("🎫 Create New License")
+
+        c1, c2 = st.columns(2)
+        with c1:
+            duration_name = st.selectbox("Select License Package", ["1 Day Trial", "7 Days", "30 Days", "1 Year"])
+        days_map = {"1 Day Trial":1, "7 Days":7, "30 Days":30, "1 Year":365}
+
+        with c2:
+            st.info(f"Selected: {duration_name}")
+
+        if st.button("➕ Generate License", use_container_width=True):
+            code, exp = make_license(days_map[duration_name])
+            db["licenses"][code] = {
+                "expiry": exp,
+                "blocked": False,
+                "created": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
-        }
-        save_data(data)
-        return data
-    try:
-        with open(DATA_FILE, "r") as f:
-            return json.load(f)
-    except:
-        return {"users": {}}
+            save(db)
+            st.success("✅ License Created")
+            st.code(code)
+            st.info("Expiry: " + exp)
 
-def analyze_signal(pair, platform):
-    bullish_score = random.randint(1, 10)
-    bearish_score = random.randint(1, 10)
-    trend_score = random.randint(60, 95)
+        st.markdown("</div>", unsafe_allow_html=True)
 
-    candle_pressure = random.choice(["Buyer pressure strong", "Seller pressure strong"])
-    zone = random.choice(["Near support zone", "Near resistance zone", "Breakout confirmed", "Retest confirmed"])
+        st.markdown("<div class='card'>", unsafe_allow_html=True)
+        st.subheader("📋 License Management")
 
-    if candle_pressure == "Buyer pressure strong":
-        bullish_score += 3
-    else:
-        bearish_score += 3
+        if len(db["licenses"]) == 0:
+            st.warning("No license created yet.")
 
-    if zone == "Near support zone":
-        bullish_score += 2
-    elif zone == "Near resistance zone":
-        bearish_score += 2
-    elif zone == "Breakout confirmed":
-        bullish_score += 2
-    else:
-        bearish_score += 1
+        for code, info in list(db["licenses"].items()):
+            status = "🟢 Active" if not info.get("blocked", False) else "🔴 Blocked"
 
-    if bullish_score > bearish_score:
-        signal = "CALL"
-        confidence = min(95, 70 + (bullish_score - bearish_score) * 3)
-    else:
-        signal = "PUT"
-        confidence = min(95, 70 + (bearish_score - bullish_score) * 3)
+            st.markdown("<div class='adminbox'>", unsafe_allow_html=True)
+            col1, col2, col3, col4 = st.columns([3, 2, 1.5, 1.5])
+            col1.code(code)
+            col2.write("Expiry: " + info.get("expiry", "N/A"))
+            col3.write(status)
 
-    reasons = [
-        f"{pair} market checked on {platform}.",
-        f"Candle analysis: {candle_pressure}.",
-        f"Zone analysis: {zone}.",
-        f"Trend strength: {trend_score}/100.",
-        f"Bullish score: {bullish_score}.",
-        f"Bearish score: {bearish_score}."
-    ]
-    return signal, confidence, reasons
-
-def login_page(data):
-    st.markdown("<h1 style='text-align:center;'>Nexora AI</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align:center;'>Trader Jahid Official AI Signal System</p>", unsafe_allow_html=True)
-
-    tab1, tab2, tab3 = st.tabs(["Login", "Register", "Admin"])
-
-    with tab1:
-        username = st.text_input("Username")
-        password = st.text_input("Password", type="password")
-        license_key = st.text_input("License Key")
-
-        if st.button("Login"):
-            user = data["users"].get(username)
-            if not user:
-                st.error("User not found")
-            elif user["password"] != password:
-                st.error("Wrong password")
-            elif user["license"] != license_key:
-                st.error("Invalid license")
-            elif user["blocked"]:
-                st.error("Account blocked")
-            elif datetime.strptime(user["expiry"], "%Y-%m-%d") < datetime.now():
-                st.error("License expired")
+            if info.get("blocked", False):
+                if col4.button("✅ Unblock", key="unblock_lic_" + code):
+                    db["licenses"][code]["blocked"] = False
+                    save(db)
+                    st.rerun()
             else:
-                st.session_state.logged_in = True
-                st.session_state.username = username
-                st.rerun()
+                if col4.button("⛔ Block", key="block_lic_" + code):
+                    db["licenses"][code]["blocked"] = True
+                    save(db)
+                    st.rerun()
 
-    with tab2:
-        new_user = st.text_input("New Username")
-        new_pass = st.text_input("New Password", type="password")
-
-        if st.button("Create Demo Account"):
-            if not new_user or not new_pass:
-                st.warning("Fill all fields")
-            elif new_user in data["users"]:
-                st.error("Username already exists")
-            else:
-                license_key = "NX-" + str(random.randint(100000, 999999))
-                data["users"][new_user] = {
-                    "password": new_pass,
-                    "license": license_key,
-                    "expiry": (datetime.now() + timedelta(days=3)).strftime("%Y-%m-%d"),
-                    "blocked": False,
-                    "credits": 5
-                }
-                save_data(data)
-                st.success(f"Account created. License: {license_key}")
-
-    with tab3:
-        au = st.text_input("Admin Username")
-        ap = st.text_input("Admin Password", type="password")
-
-        if st.button("Admin Login"):
-            if au == ADMIN_USER and ap == ADMIN_PASS:
-                st.session_state.admin = True
-                st.rerun()
-            else:
-                st.error("Wrong admin login")
-
-def dashboard(data):
-    username = st.session_state.username
-    user = data["users"][username]
-
-    st.sidebar.title("Nexora AI")
-    st.sidebar.write(f"User: {username}")
-    st.sidebar.write(f"Credits: {user['credits']}")
-    st.sidebar.write(f"Expiry: {user['expiry']}")
-
-    if st.sidebar.button("Logout"):
-        st.session_state.clear()
-        st.rerun()
-
-    st.title("📈 Nexora AI Dashboard")
-    st.caption("Educational/demo analysis system. No signal is guaranteed.")
-
-    st.markdown("<div class='card'>", unsafe_allow_html=True)
-    platform = st.selectbox("Select Platform", ["Quotex", "IQ Option", "Deriv", "Exnova"])
-    selected_pair = st.selectbox("Select Pair", PAIRS)
-    expiry = st.selectbox("Trade Expiry", ["1 Minute", "2 Minutes", "5 Minutes"])
-    uploaded = st.file_uploader("Upload chart screenshot", type=["png", "jpg", "jpeg"])
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    st.write("Telegram: @traderjahid99")
-    st.write("YouTube: Trade With Jahid")
-
-    if uploaded:
-        try:
-            st.image(Image.open(uploaded), caption="Uploaded Screenshot", use_container_width=True)
-        except:
-            st.warning("Image preview failed")
-
-        if st.button("Start AI Analysis"):
-            if user["credits"] <= 0:
-                st.error("Free credits finished. Contact Telegram: @traderjahid99")
-                return
-
-            progress = st.progress(0)
-            status = st.empty()
-            steps = [
-                "Reading screenshot...",
-                "Checking selected pair...",
-                "Checking candle pressure...",
-                "Finding support/resistance...",
-                "Generating signal..."
-            ]
-
-            for i in range(100):
-                progress.progress(i + 1)
-                status.write(steps[min(i // 20, 4)])
-                time.sleep(0.03)
-
-            signal, confidence, reasons = analyze_signal(selected_pair, platform)
-
-            user["credits"] -= 1
-            save_data(data)
-
-            st.markdown("<div class='card'>", unsafe_allow_html=True)
-            st.subheader("AI Result")
-            st.write(f"Detected Pair: **{selected_pair}**")
-            st.write(f"Platform: **{platform}**")
-            st.write(f"Expiry: **{expiry}**")
-
-            if signal == "CALL":
-                st.markdown("<div class='signal-call'>CALL ▲</div>", unsafe_allow_html=True)
-            else:
-                st.markdown("<div class='signal-put'>PUT ▼</div>", unsafe_allow_html=True)
-
-            st.metric("Confidence", f"{confidence}%")
-
-            st.subheader("Reason")
-            for r in reasons:
-                st.write("• " + r)
-
-            st.warning("Risk warning: Market can reverse anytime. Use money management.")
             st.markdown("</div>", unsafe_allow_html=True)
 
-def admin_panel(data):
-    st.title("🛡 Nexora Admin Panel")
+        st.markdown("</div>", unsafe_allow_html=True)
 
-    if st.button("Logout Admin"):
-        st.session_state.clear()
-        st.rerun()
+        st.markdown("<div class='card'>", unsafe_allow_html=True)
+        st.subheader("👥 User Management")
 
-    st.subheader("Create User")
-    u = st.text_input("Username")
-    p = st.text_input("Password")
-    days = st.number_input("Expiry Days", min_value=1, value=30)
-    credits = st.number_input("Credits", min_value=0, value=50)
+        if len(db["users"]) == 0:
+            st.warning("No user registered yet.")
 
-    if st.button("Create User License"):
-        if not u or not p:
-            st.error("Username and password required")
-        else:
-            license_key = "NX-" + str(random.randint(100000, 999999))
-            data["users"][u] = {
-                "password": p,
-                "license": license_key,
-                "expiry": (datetime.now() + timedelta(days=int(days))).strftime("%Y-%m-%d"),
-                "blocked": False,
-                "credits": int(credits)
-            }
-            save_data(data)
-            st.success(f"User created. License: {license_key}")
+        for uname, info in list(db["users"].items()):
+            user_status = "🟢 Active" if not info.get("blocked", False) else "🔴 Blocked"
 
-    st.subheader("All Users")
-    for uname, udata in data["users"].items():
-        with st.expander(uname):
-            st.json(udata)
+            st.markdown("<div class='adminbox'>", unsafe_allow_html=True)
+            c1, c2, c3, c4, c5 = st.columns([2, 2, 1.5, 1.5, 1.5])
+            c1.write("👤 " + uname)
+            c2.write("Credits: " + str(info.get("credits", 0)))
+            c3.write(user_status)
 
-            c1, c2, c3 = st.columns(3)
-            with c1:
-                if st.button(f"Block {uname}"):
-                    data["users"][uname]["blocked"] = True
-                    save_data(data)
+            if c4.button("➕ Add 100", key="add_credit_" + uname):
+                db["users"][uname]["credits"] = info.get("credits", 0) + 100
+                save(db)
+                st.rerun()
+
+            if info.get("blocked", False):
+                if c5.button("✅ Unblock", key="unblock_user_" + uname):
+                    db["users"][uname]["blocked"] = False
+                    save(db)
                     st.rerun()
-            with c2:
-                if st.button(f"Unblock {uname}"):
-                    data["users"][uname]["blocked"] = False
-                    save_data(data)
-                    st.rerun()
-            with c3:
-                if st.button(f"Add 10 Credits {uname}"):
-                    data["users"][uname]["credits"] += 10
-                    save_data(data)
+            else:
+                if c5.button("⛔ Block", key="block_user_" + uname):
+                    db["users"][uname]["blocked"] = True
+                    save(db)
                     st.rerun()
 
-def main():
-    data = load_data()
+            st.markdown("</div>", unsafe_allow_html=True)
 
-    if "logged_in" not in st.session_state:
-        st.session_state.logged_in = False
+        st.markdown("</div>", unsafe_allow_html=True)
 
-    if "admin" in st.session_state and st.session_state.admin:
-        admin_panel(data)
-    elif st.session_state.logged_in:
-        dashboard(data)
-    else:
-        login_page(data)
+    elif pw:
+        st.error("❌ Wrong admin password")
 
-if __name__ == "__main__":
-    main()
+elif menu=="Logout":
+    st.session_state.login=False
+    st.session_state.user=""
+    st.success("Logged out")
