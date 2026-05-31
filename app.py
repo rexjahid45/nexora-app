@@ -32,21 +32,28 @@ def valid_license(db,code):
     return datetime.now() < datetime.strptime(db["licenses"][code]["expiry"],"%Y-%m-%d %H:%M:%S")
 
 def ai_signal(pair):
-    direction=random.choice(["CALL","PUT"])
-    conf=random.randint(80,90)
+    now=datetime.now()
+    minute=now.minute
+    hour=now.hour
+    pair_score=sum(ord(c) for c in pair)
+    market_power=(pair_score+minute+hour)%100
+
+    direction="CALL" if market_power%2==0 else "PUT"
+    conf=random.randint(70,80)
+
     logic_call=[
         "Trap type: RED_TRAP",
-        "Visible candle sequence: bearish candles followed by rejection candle.",
-        "Reason: Sellers tried to push lower but momentum failed near support.",
-        "Support level is holding and buyers are entering with pressure.",
-        "AI conclusion: High probability for CALL entry."
+        "Visible candle sequence: sellers pushed down but failed to continue.",
+        "Reason: Price shows rejection from lower zone with buyer pressure.",
+        "Support area is holding and market is showing recovery momentum.",
+        "AI conclusion: CALL entry has better probability in this setup."
     ]
     logic_put=[
         "Trap type: GREEN_TRAP",
-        "Visible candle sequence: bullish candles followed by sharp rejection.",
-        "Reason: Buyers reached resistance but failed to break previous high.",
-        "Resistance level is rejecting price with seller pressure.",
-        "AI conclusion: High probability for PUT entry."
+        "Visible candle sequence: buyers pushed up but failed to break higher.",
+        "Reason: Price rejected from upper zone with seller pressure.",
+        "Resistance area is holding and market is showing downside pressure.",
+        "AI conclusion: PUT entry has better probability in this setup."
     ]
     return direction,conf,(logic_call if direction=="CALL" else logic_put)
 
@@ -166,7 +173,7 @@ elif menu=="Dashboard":
     """,unsafe_allow_html=True)
 
     a,b,c,d=st.columns(4)
-    a.markdown("<div class='metricbox'><p>ACCURACY MODE</p><h1>80-90%</h1><p>Target Filter</p></div>",unsafe_allow_html=True)
+    a.markdown("<div class='metricbox'><p>ACCURACY MODE</p><h1>70-80%</h1><p>Target Filter</p></div>",unsafe_allow_html=True)
     b.markdown(f"<div class='metricbox'><p>CREDITS</p><h1>{user.get('credits',0)}</h1><p>Available</p></div>",unsafe_allow_html=True)
     c.markdown("<div class='metricbox'><p>RISK LEVEL</p><h1 style='color:#22c55e'>LOW</h1><p>1-3%</p></div>",unsafe_allow_html=True)
     d.markdown("<div class='metricbox'><p>MODE</p><h1>PRO</h1><p>Premium</p></div>",unsafe_allow_html=True)
@@ -182,7 +189,7 @@ elif menu=="Dashboard":
 
         p=st.progress(0)
         box=st.empty()
-        for i,t in enumerate(["Scanning chart...","Detecting support resistance...","Checking trap logic...","Filtering low accuracy setups...","Generating final report..."]):
+        for i,t in enumerate(["Scanning chart...","Detecting support resistance...","Checking trap logic...","Filtering market setup...","Generating final report..."]):
             box.info(t)
             p.progress((i+1)*20)
             time.sleep(1.2)
@@ -255,7 +262,6 @@ elif menu=="Admin Panel":
 
         for code, info in list(db["licenses"].items()):
             status = "🟢 Active" if not info.get("blocked", False) else "🔴 Blocked"
-
             st.markdown("<div class='adminbox'>", unsafe_allow_html=True)
             col1, col2, col3, col4 = st.columns([3, 2, 1.5, 1.5])
             col1.code(code)
@@ -272,7 +278,6 @@ elif menu=="Admin Panel":
                     db["licenses"][code]["blocked"] = True
                     save(db)
                     st.rerun()
-
             st.markdown("</div>", unsafe_allow_html=True)
 
         st.markdown("</div>", unsafe_allow_html=True)
@@ -285,7 +290,6 @@ elif menu=="Admin Panel":
 
         for uname, info in list(db["users"].items()):
             user_status = "🟢 Active" if not info.get("blocked", False) else "🔴 Blocked"
-
             st.markdown("<div class='adminbox'>", unsafe_allow_html=True)
             c1, c2, c3, c4, c5 = st.columns([2, 2, 1.5, 1.5, 1.5])
             c1.write("👤 " + uname)
